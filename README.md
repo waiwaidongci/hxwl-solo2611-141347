@@ -20,6 +20,7 @@
 - 复检方案试算
 - 分流与留出核验
 - 班次派单与收件
+- 当班分流重算（实判修订与清单版本切换）
 
 ## 计算口径
 
@@ -30,6 +31,18 @@
 疑似结构险及不明残留各走现场留置规程，跳过打分。估算总成本为送复检或留置核验数 × 单箱复检成本 + 漏检数 × 单箱损失。样本历史由验箱室全量复核；只给高疑似箱补标签的历史会让成本评估失真。
 
 实判接受完好、结构修理、门封修理、烘干处理、清洗处理与隔离处置。模型票比用于当班分流，常规通道仍须验箱员按堆场规程验收签字。
+
+### 实判修订与当班清单重算
+
+同一交接单的实判更正带修订号，新旧修订可能乱序到货：
+
+- 修订流水 `audit_revisions` 以 `(交接单, 修订号)` 唯一约束，修订号必须严格递增；系统按修订号判定新旧，按实际入账日判定可见性，晚于截止点入账的高修订号在该截止点不可见。
+- 训练、验证、留出仍按**闸口初检日**归段，每段只取该段截止前实际入账的最高修订；导入 CSV 中已填的实判视为修订号 0 的初版。
+- 重算产出 `triage_lists` 清单版本，状态机为 `queued → running → active / failed / superseded`。重算期间现场沿用旧清单，整份算完后在单事务内把旧 `active` 置为 `superseded` 再激活新清单。
+- 并发重算按单调受理序号 `seq` 保护：较早受理（序号较小）的任务即使最后完成，也只会标记为 `superseded`，不能覆盖较新的清单。
+- 派单写入 `dispatch_records`，以 `(清单, 交接单)` 唯一约束保证幂等，失败重试不重复派单；`evidence_snapshot` 冻结派单当时采用的修订号与通道，后续重算对已派单保留当时实判依据（清单中标记“派单快照保留”，若新数据会改道则额外提示）。
+
+接口前缀 `/triage`：`POST /triage/revisions` 登记更正、`POST /triage/recompute` 受理重算、`GET /triage/lists/active` 取生效清单、`POST /triage/lists/{id}/dispatch` 派单、`GET /triage/dispatches` 查回执。分析员与主管可写，只读角色可查看。
 
 样例输入为 `澄浦北区空箱验收_20261124.csv`，见 `backend/demo/sample.csv`。相同输入与参数复现相同结果。格式错误在导入时提示，样本量或业务约束不满足时在后台运行结果中提示。
 
@@ -52,6 +65,15 @@ docker compose exec -T backend python -m scripts.seed_demo
 ```
 
 停止本地服务可执行 `docker compose down`。仅清理演示数据时使用 `docker compose down -v --remove-orphans`。
+
+后端测试（纯标准库引擎测试无需第三方依赖；服务/API 测试需要 SQLAlchemy、FastAPI 等依赖）：
+
+```sh
+cd backend
+python3 tests/test_triage_engine.py
+PYTHONPATH=<依赖目录>:. python3 tests/test_triage_jobs.py
+PYTHONPATH=<依赖目录>:. python3 tests/test_triage_api.py
+```
 
 浏览器 `http://127.0.0.1:18323`，API `http://127.0.0.1:19323`，数据库宿主端口 `17823`。
 

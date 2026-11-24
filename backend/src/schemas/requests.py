@@ -28,3 +28,20 @@ class ScheduleRequest(RunRequest):
     recipient: str = Field(min_length=1, max_length=100)
     first_at: datetime
     repeat_daily: bool = False
+
+
+class RevisionRequest(Request):
+    dataset_id: int = Field(gt=0)
+    ticket_id: str = Field(min_length=1, max_length=48)
+    revision: int = Field(ge=1, le=32767)
+    posted_at: str = Field(min_length=8, max_length=10)
+    audit_outcome: str = Field(min_length=1, max_length=20)
+
+
+class RecomputeRequest(RunRequest):
+    pass
+
+
+class DispatchRequest(Request):
+    ticket_ids: list[str] = Field(min_length=1, max_length=500)
+    recipient: str = Field(min_length=1, max_length=100)

@@ -27,3 +27,27 @@ def schedule(item):
 def delivery(item):
     return {'id': item.id, 'run_id': item.run_id, 'recipient': item.recipient,
             'state': item.state, 'detail': item.detail, 'created_at': iso(item.created_at)}
+
+
+def revision(item):
+    return {'id': item.id, 'ticket_id': item.ticket_id, 'revision': item.revision,
+            'posted_at': item.posted_at.date().isoformat() if hasattr(item.posted_at, 'date') else item.posted_at,
+            'audit_outcome': item.outcome, 'author': item.author, 'created_at': iso(item.created_at)}
+
+
+def triage_list(item, detail=False):
+    view = {'id': item.id, 'dataset_id': item.dataset_id, 'seq': item.seq, 'status': item.status,
+            'created_by': item.created_by, 'created_at': iso(item.created_at),
+            'finished_at': iso(item.finished_at), 'activated_at': iso(item.activated_at),
+            'error': item.error, 'attempt': item.attempt,
+            'revision_count': len(item.revision_ids or [])}
+    if detail:
+        view.update(params=item.params, result=item.result)
+    return view
+
+
+def dispatch(item):
+    return {'id': item.id, 'list_id': item.list_id, 'ticket_id': item.ticket_id, 'lane': item.lane,
+            'action': item.action, 'reason': item.reason, 'risk': item.risk,
+            'recipient': item.recipient, 'created_by': item.created_by, 'created_at': iso(item.created_at),
+            'evidence_snapshot': item.evidence_snapshot}

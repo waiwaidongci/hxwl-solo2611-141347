@@ -18,5 +18,13 @@ export const workspace = {
   deliveries: () => call('/deliveries'),
   schedule: data => call('/schedules', data),
   disable: id => call(`/schedules/${id}/disable`, {}),
+  revisions: datasetId => call(`/triage/revisions?dataset_id=${datasetId}`),
+  registerRevision: data => call('/triage/revisions', data),
+  recompute: data => call('/triage/recompute', data),
+  triageLists: () => call('/triage/lists'),
+  activeTriage: () => call('/triage/lists/active'),
+  triageList: id => call(`/triage/lists/${id}`),
+  dispatch: (id, data) => call(`/triage/lists/${id}/dispatch`, data),
+  dispatches: listId => call(`/triage/dispatches${listId ? `?list_id=${listId}` : ''}`),
   download: (path, filename) => saveFile(path, session.token, filename),
 };

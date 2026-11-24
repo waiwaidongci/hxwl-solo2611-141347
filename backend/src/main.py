@@ -7,7 +7,8 @@ from src.config.database import Base, engine
 from src.config.settings import SEED_DEMO
 from src.domain.spec import SPEC
 from src.middlewares import errors, headers, rate
-from src.routes import distribution, identity, registry, runs
+from src.models import triage as triage_models
+from src.routes import distribution, identity, registry, runs, triage
 from src.utils.wakeup import broker
 
 log = logging.getLogger(__name__)
@@ -15,6 +16,8 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app):
+    # 显式引用，确保分流清单相关表已注册到 Base 元数据后再建表。
+    assert triage_models.TriageList.__tablename__ == 'triage_lists'
     Base.metadata.create_all(engine)
     if SEED_DEMO:
         try:
@@ -29,7 +32,7 @@ app = FastAPI(title=SPEC['title'], lifespan=lifespan)
 errors.install(app)
 headers.install(app)
 rate.install(app)
-for module in (identity, registry, runs):
+for module in (identity, registry, runs, triage):
     app.include_router(module.router)
 if SPEC.get('scheduled'):
     app.include_router(distribution.router)

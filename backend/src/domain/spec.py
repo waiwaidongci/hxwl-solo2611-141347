@@ -11,7 +11,7 @@ def api_fields(items):
 
 
 business = BUSINESS
-ledger, run, result, delivery = business['pages']
+ledger, run, result, delivery = business['pages'][:4]
 method = business['method']
 SPEC = {
     'title': business['title'], 'short_name': 'hxwl-solo2611-14', 'subtitle': business['description'],
